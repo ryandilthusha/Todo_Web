@@ -1,0 +1,164 @@
+//=================== The code for the Todo app Front End ========================= THIS CODE DONE BEFORE INTRODUCING CLASSES OF 'TODOs'
+
+/*===============================================================================
+1) Configuration and Initial Setup
+This section sets up constants and initial states for the UI elements.
+*/
+
+//Variable that holds url for the backend
+const BACKEND_ROOT_URL = 'http://localhost:3001'
+
+
+
+// Get the form, input, and ul elements
+const btn1 = document.querySelector('#button_addTask');
+const input1 = document.querySelector('input');
+const list1 = document.querySelector('ul');
+
+//By default, input field is disabled!
+input1.disabled =true;
+
+
+
+
+/*===============================================================================
+2) UI Rendering Function    (CREATE-Happening)
+Defines how tasks are rendered on the UI.
+*/
+
+// Define a function to render a new task in the UI
+const renderTask = function(taskContent)
+{
+    // Create a new list item element, add Bootstrap class for styling
+    const li = document.createElement('li');
+    li.setAttribute('class', 'list-group-item');
+    //List text content equals to taskContent(which is input1.value)
+    li.textContent = taskContent;        
+    list1.appendChild(li);
+}
+
+
+
+
+/*===============================================================================
+3) Fetching Tasks   (READ)
+This asynchronous function retrieves tasks from the backend and updates the UI accordingly.
+*/
+
+// Arrow function to get tasks from the backend
+
+//The getTasks function is defined as an asynchronous function.
+//Which means it can use the await keyword to pause execution until the promise is resolved
+const getTasks = async () => 
+{
+    try 
+    {
+        // Make an asynchronous GET request to the backend root URL
+         // 'await' pauses function execution until the fetch operation completes, making the asynchronous code read like synchronous code.
+        const response = await fetch(BACKEND_ROOT_URL);
+        
+        // Convert the fetch response into JSON format.
+        // The JSON object will contain an array of task objects fetched from the server.
+        const json = await response.json();
+
+
+        // Iterate over each task object in the fetched array
+        json.forEach(task => {
+            // For each task, the renderTask function is called to display its description in the UI.
+            renderTask(task.description);
+        });
+
+
+        // Once all tasks have been rendered, re-enable the input field.
+        // This is done by setting its 'disabled' property to false, allowing the user to enter new tasks.
+        input1.disabled = false;
+    } 
+    
+    catch (error) 
+    {
+        // Alert the user if an error occurs during the fetch process
+        alert("Error retrieving tasks " + error.message);
+    }
+};
+
+// Call getTasks to fetch and display all tasks
+getTasks();
+
+
+
+/*===============================================================================
+4) Saving Tasks     (CREATE-Saving in database)
+Defines how new tasks are saved to the backend.
+*/
+
+// Define an asynchronous function to save a task
+const saveTask = async (taskContent) =>     //taskContent coming from button click Event Handler
+{  
+    //This function waits (await) for a fetch request to complete. 
+    //This is different from using a setTimeout method because fetch directly deals with asynchronous HTTP requests, while setTimeout simply delays execution.
+    try 
+    {
+        // Convert the task object into a JSON string to send as the request(req in backend) body.
+        const json = JSON.stringify({ description: taskContent });
+
+        // Execute a POST request to the backend server to save the new task.
+        // The 'await' keyword pauses execution until the fetch request is completed.
+        const response = await fetch(BACKEND_ROOT_URL + '/new', 
+        {
+            method: 'POST',                         // Specifies that this is a POST request.
+            headers: {                              
+                'Content-Type': 'application/json'  // Indicates that the request body format is JSON.
+            },
+            body: json                              // Sends the stringified taskContent as the request body.
+        });
+
+        // Wait for the server's response and convert it to JSON
+        return response.json(); // This result is then passed to the .then() method
+        //retun value is: {id: "123", description: "The task content"}
+    } 
+    
+    catch (error)   // If an error occurs during the fetch operation, it's caught by the catch block and an alert is shown
+    {
+        // If an error occurs, display an alert to the user
+        alert("Error saving task " + error.message);
+    }
+};
+  
+
+
+
+/*===============================================================================
+5) Event Handling
+Sets up event listeners for user interactions.
+*/
+
+// Event listener for Button Click
+btn1.addEventListener('click', function(event) {
+    // Event object containing information and methods that are useful for that specific event
+    event.preventDefault(); // Prevent the form from submitting the traditional way
+
+    // Get the value of the input 
+    const taskContent = input1.value;
+
+    // Check if the input value is not empty
+    if (taskContent !== '') {
+        // Call the saveTask function and pass the new taskContent ('What we type in text box') to it
+        saveTask(taskContent)
+        .then((json) =>     // This .then() method is called after the saveTask function successfully completes.
+        {
+            // After saving the task, let's render(display) the taskContent in the UI using the renderTask function
+            renderTask(taskContent);    (CREATE-Signaling)
+            // Clear the input field to make it ready for a new task
+            input1.value = '';
+        })
+        .catch((error) => 
+        {
+            // Handle any errors that occur during the save operation
+            console.error("An error occurred while saving the task:", error);
+            alert("Error saving task: " + error.message);
+        });
+    }
+});
+
+
+
