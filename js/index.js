@@ -1,7 +1,7 @@
 //=================== The code for the Todo app Front End =========================
 
 /*===============================================================================
-1) Configuration and Initial Setup
+Configuration and Initial Setup
 This section sets up constants and initial states for the UI elements.
 */
 
@@ -20,31 +20,56 @@ const list1 = document.querySelector('ul');
 //By default, input field is disabled!
 input1.disabled =true;
 
+//*************************************************************************************************************************************** */
 
 
 
-/*===============================================================================
-2) UI Rendering Function    (CREATE-Happening)
+
+
+
+
+
+
+
+
+
+
+/*===============================<<< (CREATE-Happening) >>>================================================
+2) UI Rendering (Generating) Task Function   
 Defines how tasks are rendered on the UI.
 */
 
-// Define a function to render a new task in the UI
-const renderTask = function(addedTask)      //This addedTask parameter is task1 object returns by Todos class addTask method
+// Define a function to render a new task in the UI ()
+const renderTask = function(addedTask)      //This addedTask parameter is task1 object returns by Todos class addTask method | addedTask=  task1 ={id:1, text:'Buy Milk', getId(), getText()}
 {
     // Create a new list item element and add Bootstrap class for styling
-    const li = document.createElement('li');
-    li.setAttribute('class', 'list-group-item');
-    // Set the inner HTML of the list item to the task's text, accessed through the Task object's getText method
-    li.innerHTML = addedTask.getText();       // <- Here, taskContent is an object of Task Class which created inside of Todo Class
+    const li = document.createElement('li');        // <li>     </li>
+    li.setAttribute('class', 'list-group-item');    // <li class="list-group-item">     </li>
+
+    // Set a 'data-key' attribute on the list item with the task's ID to uniquely identify it
+    // Assume task.getId() returns 1, the li element now looks like:  ->  
+    li.setAttribute('data-key', addedTask.getId().toString());  // <li class="list-group-item" data-key="1">       </li>
+
+
+    renderSpan(li, addedTask.getText());    // Call the renderSpan function to create and append a span element to the li
+    renderLink(li, addedTask.getId());      // Call the renderLink function to create and append a delete link(Button) with an icon
+
     // Append the newly created list item to the list
     list1.appendChild(li);
 }
 
+// Function to generate a span element containing the TaskContent text (To seperate the Task from Trash Button)
+const renderSpan = (li, text) =>    //li: Task in the task list |   text: addedTask.getText()
+{
+    const span = document.createElement('span');        // <span></span>
+    span.textContent = text; // If text is "Buy milk", the span element now looks like: <span>Buy milk</span>
+    li.appendChild(span);   // <li ...>     <span>Buy milk</span>   </li>
+}
 
 
 
-/*===============================================================================
-3) Fetching Tasks   (READ)
+/*===============================<<< (READ-Happening) >>>================================================
+3) Fetching Tasks   
 This asynchronous function retrieves tasks from the backend and updates the UI accordingly.
 */
 
@@ -58,7 +83,7 @@ const getTasks = () =>
         // Loop through the array of tasks returned by the promise
         tasks.forEach((currentTask) => 
         {
-            // Use renderTask to display each task in the UI
+            // Use renderTask to generate each task in the UI
             renderTask(currentTask);
         });
 
@@ -70,19 +95,75 @@ const getTasks = () =>
     })
     .catch((error) => 
     {
-      // If there's an error retrieving tasks, display an alert
+      // If there's an error retrieving tasks, generate an alert
       alert(error);
     });
   };
   
 
-// Call getTasks to fetch and display all tasks
+// Call getTasks to fetch and generate all tasks
 getTasks();
 
 
 
+
+
+/*===============================<<< (DELETE-Happening) >>>================================================
+4) CREATE DELETE BUTTON and DELETE BUTTON EVENT LISTNER
+*/
+
+// Function to generate a delete link (Delete Button) with a Bootstrap icon
+const renderLink = (li, id) =>  //li: Task in the task list |   id:   addedTask.getId()
+{
+    //// Create an anchor (<a>) element that will act as the delete button
+    const a = document.createElement('a');    //   --> <a></a>
+
+    // Set the Bootstrap trash icon (can get this line of code: Search Google Bootstrap Trash Icon)
+    a.innerHTML = '<i class="bi bi-trash"></i>';    //   --> <a><i class="bi bi-trash"></i></a>
+
+    
+    a.setAttribute('style', 'float: right');    // Add CSS style to float the icon to the right side of the list item
+    a.setAttribute('href', '#');                // Set the href attribute to '#' to make the anchor element clickable
+    a.setAttribute('data-id', id);              // Store the task's ID in a 'data-id' attribute for access during the delete operation
+    //Final Result:     <a style="float: right" href="#">   <i class="bi bi-trash"></i>    </a>
+
+    li.appendChild(a);       // Append the anchor element to the list item
+    //Final Result:     <li ...>     <span>Buy milk</span>          <a style="float: right" href="#" data-id="id"><i class="bi bi-trash"></i></a>       </li>
+
+
+
+    // ****** DELETE BUTTON EVENT LISTNER: Add a click event listener to the anchor element **********
+    a.addEventListener('click', function(event) 
+    {
+        event.preventDefault(); // Prevent the link from changing the URL
+
+        todos.removeTask(id)    //Run the Back End Task Removal Function
+        .then(() =>     //If the Task delete success Remove the whole Task List Item
+        {
+            li.remove(); // Remove the list item from the DOM
+        })
+        
+        .catch((error) =>   //If the Task delete fails
+        {
+            alert(error); // Alert the error if something goes wrong
+        });
+    });
+    
+}
+
+
+
+
+
+
+
+
+
+
+
+
 /*===============================================================================
-5) Event Handling
+5) Event Handling TO ADD TASK BUTTON
 Sets up event listeners for user interactions.
 */
 
@@ -98,17 +179,18 @@ btn1.addEventListener('click', function(event)
     if (taskContent !== '') 
     {
         // Call the addTask method on the todos object with the new task content     (CREATE-Signaling)
-        todos.addTask(taskContent)      // <-   Here, todos is an object of Todos Class | 
+        todos.addTask(taskContent)      // <-   Here, todos is an object of Todos Class | This is the method where Back End doing task adding (POSTing)
         //                                      This returns task1 object which holds id and description (task1 is an object of Task Class created inside the Todo Class)
-        .then((addedTask) => // The resolved value is the new task1 object and pass down as an argument here
+        .then((addedTask) => // The resolved value is: new task1 object. So it is returning to here as an argument
+        //                      So this addedTask object is an object of Task Class. Ex:    addedTask=  task1 ={id:1, text:'Buy Milk', getId(), getText()}
         { 
-            // Render(display) the new task in the UI using the custom made renderTask function
+            // Call the render(generate) the new task function in the UI (At the top of this file)
             renderTask(addedTask);
-            // Clear the input field for the next task
-            input1.value = '';
-            // Set focus back to the input field
-            input1.focus();
+            
+            input1.value = '';  // Clear the input field for the next task            
+            input1.focus(); // Set focus back to the input field
         })
+
         .catch((error) => 
         {
             // If an error occurs while saving the task, log the error and alert the user

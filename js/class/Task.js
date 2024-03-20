@@ -1,4 +1,5 @@
 // Define a class to represent a Task
+// THESE ARE THE PROPERTIES AND METHODS THAT EACH CREATING TASK WOULD HAVE
 class Task 
 {
     // Declare private properties using the # symbol to ensure they are not accessible outside the class

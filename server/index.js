@@ -45,7 +45,7 @@ const openDb = function()
 This section applies middleware used by the Express application, such as CORS and JSON body parsing.
 */
 
-// Initialize the Express application to set up our HTTP server.
+// Creates the Express application to set up our HTTP server.
 const app = express();
 
 
@@ -55,6 +55,10 @@ app.use(cors());
 app.use(express.json());
 
 
+// This had to introduce because of DELETE Route
+// This adds middleware to parse URL-encoded bodies (as sent by HTML forms).
+// Since id for the deleted task is passed as a part of url, we need to this so that express can read parameters from url address.
+app.use(express.urlencoded({extended: false}));
 
 
 
@@ -105,17 +109,51 @@ app.post("/new", function(req, res)
       "INSERT INTO task (description) VALUES ($1) RETURNING *",
       [req.body.description], // Extracts the description from the request body
       (error, result) => { // Callback function to handle the query result
-        if (error) {
+        if (error) 
+        {
           // If an error occurs, send a 500 Internal Server Error status code and the error message
           res.status(500).json({ error: error.message });
         } 
-        else {
+        else 
+        {
           // If successful, send a 200 OK status code and the inserted task's ID
           res.status(200).json({ id: result.rows[0].id });  //This retriev from the first row of the result which database automatically generated when the new task was inserted
         }
       }
     );
 });
+
+
+
+
+// DELETE endpoint to remove an existing task from the database (This Route Handler waits for DELETE requests at the URL path/delete/:id)
+app.delete("/delete/:id", async(req, res) => 
+{
+  // Obtain a pool of database connections
+  const pool = openDb();
+
+  // Get the ID from the request parameters and convert it to an integer
+  const id = parseInt(req.params.id);
+
+  // Execute the delete query with the ID, $1 is a placeholder for the ID
+  pool.query("DELETE FROM task WHERE id = $1", 
+  [id], 
+  (error, result) => {
+      if (error) 
+      {
+          // If an error occurs, send a 500 Internal Server Error status code and the error message
+          res.status(500).json({error: error.message});
+      } 
+      else 
+      {
+          // If successful, send a 200 OK status code and the deleted task's ID
+          // Assuming the query results in a change, the ID is returned as confirmation of deletion
+          res.status(200).json({id: id});
+      }
+  });
+});
+
+
 
 
 
