@@ -10,9 +10,19 @@ This section imports the necessary modules for the server to function.
 const express = require('express');
 // Import CORS to allow our Todo app frontend (running on a different port or domain) to interact with this backend.
 const cors = require('cors');
-// Import the 'Pool' class from the 'pg' module, which is necessary for creating a pool of connections to the PostgreSQL database.
-const { Pool } = require('pg'); //Pool class is created below when defining a function to open a new database connection pool.
 
+/* Removing Pool since we are now using db.js for database interactions -->
+
+Import the 'Pool' class from the 'pg' module, which is necessary for creating a pool of connections to the PostgreSQL database.
+//const { Pool } = require('pg'); //Pool class is created below when defining a function to open a new database connection pool.*/
+
+
+// Load environment variables from .env file
+require('dotenv').config();
+
+
+// Import the database query function from the db module
+const { query } = require('./helpers/db.js');
 
 /*===============================================================================
 2) Configuration:
@@ -20,24 +30,29 @@ This section sets up the server configuration, like the port number and the data
 */
 
 // Define the port number that our backend server will listen on. This is where our Todo app backend will accept HTTP requests.
-const port = 3001;
+// Set the server port from environment variable OR use 3000 as default
+const port = process.env.PORT || 3000;     //Without .env file -->  const port = 3001;
 
-// Define a function to open a new database connection pool.
+
+/* This part moved to db.js file after introducing .env file -->
+
+Define a function to open a new database connection pool.
 const openDb = function()
 {
     // Create a new pool instance with configuration settings for the PostgreSQL database.
     const pool = new Pool({
-        user: 'postgres',      // The default superuser of the PostgreSQL database.
-        host: 'localhost',     // The server hosting the PostgreSQL database (localhost for the local machine).
-        database: 'todo',      // The name of the database to connect to.
-        password: '1997',      // The password for the database user (ensure this is secure in production).
-        port: 5432,            // The port where the PostgreSQL server is listening (5432 is the default).
+      //At here the data is read by .env file (for security reason)
+        user: process.env.DB_USER,      // The default superuser of the PostgreSQL database.
+        host: process.env.DB_HOST,     // The server hosting the PostgreSQL database (localhost for the local machine).
+        database: process.env.DB_NAME,      // The name of the database to connect to.
+        password: process.env.DB_PASSWORD,      // The password for the database user (ensure this is secure in production).
+        port: process.env.DB_PORT,            // The port where the PostgreSQL server is listening (5432 is the default).
     });
 
     // Return the pool object to allow the calling code to use this pool to make database connections.
     return pool;
 }
-
+*/
 
 
 /*===============================================================================
@@ -62,6 +77,13 @@ app.use(express.urlencoded({extended: false}));
 
 
 
+
+
+
+
+
+
+
 /*===============================================================================
 4) Route Definitions:
 This section defines the HTTP routes the server will respond to (GET and POST endpoints).
@@ -80,7 +102,11 @@ app.get('/', function(req, res) {
 */
 
 /*2. Then modify like this*/
-app.get('/', function(req, res) {
+
+/* <<<OLD GET endpoint to retrieve all tasks from the database>>>
+
+app.get('/', function(req, res) 
+{
     const pool = openDb();
 
     pool.query('SELECT * FROM task', function(error,result){
@@ -91,11 +117,33 @@ app.get('/', function(req, res) {
         res.status(200).json(result.rows);
     });
 });
+*/
+
+// <<<<<<<<   NEW GET endpoint to retrieve all tasks from the database   >>>>>>>>>
+
+// This route handler is now using the new 'query' function from the db.js module
+app.get('/', async (req, res) => 
+{
+  try 
+  {
+      // The 'query' function is used instead of the 'pool.query' directly.
+      // It simplifies error handling by allowing the use of try/catch with async/await.
+      const result = await query('SELECT * FROM task');
+
+      // Send the retrieved rows as JSON. If no rows are found, an empty array is returned.
+      res.status(200).json(result.rows);
+  } 
+  catch (error) 
+  {
+      // Errors from the 'query' function are caught here and a 500 status code is sent back.
+      console.error(error);
+      res.status(500).json({ error: error.message });
+  }
+});
 
 
 
-
-
+/* <<<OLD POST endpoint to create a new task in the database>>>
 
 // POST endpoint to create a new task in the database   (This Route Handler waits for POST requests at the URLpath/new)
 app.post("/new", function(req, res)
@@ -122,9 +170,35 @@ app.post("/new", function(req, res)
       }
     );
 });
+*/
+
+
+// <<<<<<<<   NEW POST endpoint to create a new task in the database   >>>>>>>>>
+
+// This handler is updated to use the new 'query' function
+app.post("/new", async (req, res) => 
+{
+  try 
+  {
+      // The 'query' function is called with the SQL command and the values for the placeholders
+      // Using 'async/await' simplifies the code structure, avoiding nested callbacks.
+      const result = await query('INSERT INTO task (description) VALUES ($1) RETURNING *', 
+      [req.body.description]);
+      // Respond with the new task's data
+      res.status(200).json(result.rows[0]);
+  } 
+  catch (error) 
+  {
+      // Catch any errors and send back an appropriate response
+      console.error(error);
+      res.status(500).json({ error: error.message });
+  }
+});
 
 
 
+
+/* <<<OLD DELETE endpoint to remove an existing task from the database>>>
 
 // DELETE endpoint to remove an existing task from the database (This Route Handler waits for DELETE requests at the URL path/delete/:id)
 app.delete("/delete/:id", async(req, res) => 
@@ -153,10 +227,39 @@ app.delete("/delete/:id", async(req, res) =>
   });
 });
 
+*/
 
 
+// <<<<<<<<   NEW DELETE endpoint to remove an existing task from the database   >>>>>>>>>
 
-
+// This handler now uses the new 'query' function and 'async/await' syntax for simplicity
+app.delete("/delete/:id", async (req, res) => 
+{
+  try 
+  {
+      // Convert the id from the request parameters to a number
+      const id = Number(req.params.id);
+      // Await the result of the deletion query
+      const result = await query('DELETE FROM task WHERE id = $1 RETURNING *', [id]);
+      
+      // If no rows were returned, the task did not exist, so return a 404 error      
+      if (result.rowCount === 0) 
+      {
+          res.status(404).json({ message: 'Task not found' });
+      } 
+      else 
+      {
+          // Otherwise, return the id of the deleted task
+          res.status(200).json({ id: result.rows[0].id });
+      }
+  } 
+  catch (error) 
+  {
+      // Handle any errors during the query
+      console.error(error);
+      res.status(500).json({ error: error.message });
+  }
+});
 
 
 

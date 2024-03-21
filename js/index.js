@@ -77,7 +77,7 @@ This asynchronous function retrieves tasks from the backend and updates the UI a
 const getTasks = () => 
 {
     // Call the getTasks method in the todos object which returns a promise (todos is an object of Todo Class)
-    todos.getTasks()
+    todos.getTasks()    //*** <<< RUN THE BACKEND GET FUNCTION >>> ***
     .then((tasks) => 
     {
         // Loop through the array of tasks returned by the promise
@@ -137,7 +137,7 @@ const renderLink = (li, id) =>  //li: Task in the task list |   id:   addedTask.
     {
         event.preventDefault(); // Prevent the link from changing the URL
 
-        todos.removeTask(id)    //Run the Back End Task Removal Function
+        todos.removeTask(id)    //*** //*** <<< RUN THE DELETE FUNCTION >>> ***
         .then(() =>     //If the Task delete success Remove the whole Task List Item
         {
             li.remove(); // Remove the list item from the DOM
@@ -179,7 +179,8 @@ btn1.addEventListener('click', function(event)
     if (taskContent !== '') 
     {
         // Call the addTask method on the todos object with the new task content     (CREATE-Signaling)
-        todos.addTask(taskContent)      // <-   Here, todos is an object of Todos Class | This is the method where Back End doing task adding (POSTing)
+        todos.addTask(taskContent)      // <-   //*** <<< RUN THE BACKEND POST FUNCTION >>> ***
+        //                                      Here, todos is an object of Todos Class | This is the method where Back End doing task adding (POSTing)
         //                                      This returns task1 object which holds id and description (task1 is an object of Task Class created inside the Todo Class)
         .then((addedTask) => // The resolved value is: new task1 object. So it is returning to here as an argument
         //                      So this addedTask object is an object of Task Class. Ex:    addedTask=  task1 ={id:1, text:'Buy Milk', getId(), getText()}
