@@ -62,7 +62,9 @@ todoRouter.get('/', async (req, res) =>
   {
       // The 'query' function is used instead of the 'pool.query' directly.
       // It simplifies error handling by allowing the use of try/catch with async/await.
-      const result = await query('SELECT * FROM task');
+        
+        // The 'ASC' keyword specifies an ascending order.
+      const result = await query('SELECT * FROM task ORDER BY id ASC');
 
       // Send the retrieved rows as JSON. If no rows are found, an empty array is returned.
       res.status(200).json(result.rows);
@@ -194,6 +196,46 @@ todoRouter.delete("/delete/:id", async (req, res) =>
       res.status(500).json({ error: error.message });
   }
 });
+
+
+
+
+// <<<<<<<<   NEW PUT endpoint to update an existing task in the database   >>>>>>>>>
+// This handler is updated to use the new 'query' function from the db.js module
+todoRouter.put("/update/:id", async (req, res) => {
+  try {    
+    const id = parseInt(req.params.id);   // Extract the 'id' parameter from the URL and convert it to an integer
+    
+    const { description } = req.body;   // Extract the 'description' from the request body
+
+    // Call the 'query' function with the SQL command to update the task
+    // Passing the new description and the task id as parameters
+    const result = await query(
+      "UPDATE task SET description = $1 WHERE id = $2 RETURNING *",
+      [description, id]
+    );
+
+    // If no rows were updated, then the task with the given id doesn't exist
+    if (result.rowCount === 0) 
+    {
+      res.status(404).json({ message: 'Task not found' });
+    } 
+    else 
+    {
+      // Respond with the updated task's data
+      res.status(200).json(result.rows[0]);
+    }
+  } 
+  
+  catch (error) {
+    // Log the error to the console and respond with a 500 Internal Server Error status code
+    console.error('Error updating task:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+
 
 
 

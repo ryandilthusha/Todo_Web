@@ -53,6 +53,9 @@ const renderTask = function(addedTask)      //This addedTask parameter is task1 
 
     renderSpan(li, addedTask.getText());    // Call the renderSpan function to create and append a span element to the li
     renderLink(li, addedTask.getId());      // Call the renderLink function to create and append a delete link(Button) with an icon
+    
+    renderEditLink(li, addedTask.getId(), addedTask.getText()); // Call the renderEditLink function to create and append a edot link(Button) with an icon
+    
 
     // Append the newly created list item to the list
     list1.appendChild(li);
@@ -152,6 +155,43 @@ const renderLink = (li, id) =>  //li: Task in the task list |   id:   addedTask.
 }
 
 
+/*===============================<<< (EDIT-Happening) >>>================================================
+4) CREATE EDIT BUTTON and EDIT BUTTON EVENT LISTNER
+*/
+
+// Function to generate an edit link (Edit Button) with a Bootstrap icon
+const renderEditLink = (li, id, text) => 
+{
+    const a = document.createElement('a'); // Create an anchor (<a>) element for the edit button
+    a.innerHTML = '<i class="bi bi-pencil-square"></i>'; // Set the Bootstrap pencil-square icon for editing
+    
+    a.setAttribute('style', 'float: right; margin-left: 10px;'); // Add styling to float the icon next to the delete icon
+    a.setAttribute('href', '#'); // Set the href attribute to '#' to make the anchor element clickable
+    
+    a.addEventListener('click', function(event) 
+    {
+        event.preventDefault(); // Prevent the link from changing the URL
+
+        const newText = prompt('Edit Task:', text); // Prompt the user to enter a new task description
+
+        if (newText != null && newText.trim() !== '')   // Check if newText is not null or just whitespace
+        { // If newText is not null and not empty
+            todos.updateTask(id, newText.trim()) ///*** //*** <<< RUN THE PUT FUNCTION >>> ***
+
+            //The resolved value is the updated updated JSON object which returns here
+            .then(updatedTask => {
+                // Find the span in the list item and update its text content
+                const span = li.querySelector('span');
+                span.textContent = updatedTask.description;
+            })
+
+            .catch(error => {
+                alert(error); // Alert the error if something goes wrong
+            });
+        }
+    });
+    li.appendChild(a); // Append the edit link to the list item
+}
 
 
 

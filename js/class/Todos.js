@@ -177,6 +177,64 @@ class Todos
         // The local array of tasks is then updated to this new array that no longer contains the removed task.
         this.#tasks = arrayWithoutRemoved;
     }
+
+
+
+
+    /*
+    //                          <<< BACKEND UPDATE TASK (PUT) >>>
+    */
+    // This public method is for updating a task in the backend.     (UPDATE-Modifying in database)
+    // It accepts a task 'id' and 'text' which is the new description for the task.
+    updateTask = (id, text) => 
+    {
+        return new Promise((resolve, reject) => 
+        {
+            // Convert the task content to a JSON-formatted string
+            const json1 = JSON.stringify({ description: text });
+
+            // The 'fetch' method is used to send an HTTP PUT request to the server endpoint.
+            // The 'id' of the task to be updated and the new description are sent in the request body.
+            fetch(this.#backend_url + '/update/' + id, 
+            {
+                method: 'PUT', // Using 'PUT' HTTP method for updating
+                headers: { 'Content-Type': 'application/json' }, // Indicating that we are sending JSON
+                body: json1 // The body of the request is the updated task description
+            })
+
+            .then(response => response.json()) // Parsing the JSON response from the server
+            
+            .then(json => 
+                {
+                // Update the task in the local array
+                this.#updateArray(id, text);
+                // Resolve the promise with the updated task
+                resolve(json); // The resolved value is the updated JSON object
+                })
+
+            .catch(error => 
+                {
+                // Reject the promise if there is an error
+                reject(error);
+                });
+        });
+    }
+
+    // This is a private method to update a task in the local array of tasks.
+    #updateArray = (id, text) => {
+        // Find the task with the given 'id' and update its description
+        const taskIndex = this.#tasks.findIndex(task => task.id === id);
+        if (taskIndex !== -1) {
+            this.#tasks[taskIndex].description = text;
+        }
+    }
+
+
+
+
+
+
+
   
 
 
